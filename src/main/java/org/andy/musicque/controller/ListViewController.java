@@ -7,6 +7,8 @@ import javafx.fxml.FXML;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.HBox;
 import javafx.scene.media.Media;
@@ -16,11 +18,13 @@ import javafx.util.Duration;
 import org.andy.musicque.event.EventSelectedMusic;
 import org.andy.musicque.model.FileItem;
 import org.andy.musicque.utils.EventBusUtils;
+import org.andy.musicque.utils.ImageHelper;
 
 
 import java.io.File;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Queue;
 
 public class ListViewController {
@@ -37,6 +41,7 @@ public class ListViewController {
     private int playingIndex = -1;
 
     private MediaPlayer mediaPlayer;
+    Image image = ImageHelper.loadImage("/images/pause-icon.png");;
 
     @FXML
     public void initialize() {
@@ -90,6 +95,11 @@ public class ListViewController {
                 // Initially, both the button and label are invisible.
                // playButton.setVisible(false);
                 label.setVisible(false);
+                ImageView imageView = new ImageView(image);
+                imageView.setFitWidth(16);
+                imageView.setFitHeight(16);
+                imageView.setPreserveRatio(true);
+                label.setGraphic(imageView);
 
 //                playButton.setOnAction(event -> {
 //                    FileItem item = getTableView().getItems().get(getIndex());
@@ -134,6 +144,7 @@ public class ListViewController {
 
     public void updateList(List<File> files) {
         tableView.getItems().clear();
+        playingIndex = -1;
         if (files != null) {
             fileQueue.addAll(files);
             processNextFile();

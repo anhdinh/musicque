@@ -26,11 +26,8 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ThreadLocalRandom;
 
 public class MusicqueController {
     @FXML
@@ -59,12 +56,13 @@ public class MusicqueController {
     private GraphicsContext gc;
     private static final double CANVAS_WIDTH = 520;
     private static final double CANVAS_HEIGHT = 210;
-    private static final double BASS_DAMPING_FACTOR = 0.7;
+
     private static final int NUM_BANDS = 64;
     private double barWidth;
-    private static final double MID_GAIN_FACTOR = 1;
-    private static final double TREBLE_GAIN_FACTOR = 1.2;
-    private static final double SUPER_TREBLE_GAIN_FACTOR = 2.5;
+    private static final double BASS_DAMPING_FACTOR = 0.7;
+    private static final double MID_GAIN_FACTOR = 0.7;
+    private static final double TREBLE_GAIN_FACTOR = 1.5;
+    private static final double SUPER_TREBLE_GAIN_FACTOR = 2;
 
     private static final int NUM_COLORS = 64;
     private final Color[] barColors = new Color[NUM_COLORS];
@@ -98,6 +96,8 @@ public class MusicqueController {
                 mediaPlayer.setVolume(newValue.doubleValue());
             }
         });
+
+        drawDefaultBars(gc);
     }
 
     @FXML
@@ -158,76 +158,116 @@ public class MusicqueController {
         mediaPlayer.setAudioSpectrumInterval(0.05);
         mediaPlayer.setAudioSpectrumNumBands(128);
 
+
         mediaPlayer.setAudioSpectrumListener((timestamp, duration, magnitudes, phases) -> {
             gc.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            drawDefaultBars(gc);
             double segmentHeight = CANVAS_HEIGHT / NUM_COLORS;
             double x = 0;
-            double sampleRate = 44100.0;
-            double nyquist = sampleRate / 2.0;
-            double minFreq = 30;
+            double nyquist = 44100.0 / 2.0; // sampleRate/2
+            for (int band = 0; band <NUM_BANDS; band++) {
+                // --- Tính dải tần cho band ---
+                int[] range = getFreqIndexRange(band, nyquist, magnitudes.length);
+                int startIndex = range[0];
+                int endIndex   = range[1];
 
-            for (int band = 0; band < NUM_BANDS; band++) {
-                double logIndexStart = (double) band / (NUM_BANDS);
-                double freqStart = minFreq * Math.pow(nyquist / minFreq, logIndexStart);
+                // --- Trung bình magnitude ---
+                float avgMag = averageMagnitude(magnitudes, startIndex, endIndex);
+                double adjustedValue = applyGain(band, avgMag + 60.0);
 
-                double logIndexEnd = (double) (band + 1) / (NUM_BANDS);
-                double freqEnd = minFreq * Math.pow(nyquist / minFreq, logIndexEnd);
-
-                double bandWidth = nyquist / magnitudes.length;
-                int startIndex = (int) (freqStart / bandWidth);
-                int endIndex = (int) (freqEnd / bandWidth);
-
-                startIndex = Math.min(Math.max(0, startIndex), magnitudes.length - 1);
-                endIndex = Math.min(Math.max(0, endIndex), magnitudes.length - 1);
-                endIndex = Math.max(startIndex + 1, endIndex);
-
-                float sumMagnitude = 0;
-                int count = 0;
-                for (int i = startIndex; i < endIndex; i++) {
-                    sumMagnitude += magnitudes[i];
-                    count++;
-                }
-
-                float avgMagnitude = count > 0 ? sumMagnitude / count : -60.0f;
-                double cappedMagnitude = Math.max(avgMagnitude, -60.0);
-                double adjustedValue = cappedMagnitude + 60.0;
-
-                if (band < 16) {
-                    if (band < 4) {
-                        adjustedValue *= BASS_DAMPING_FACTOR *0.7;
-                    } else if (band < 8) {
-                        adjustedValue *= BASS_DAMPING_FACTOR*0.8;
-                    } else if (band < 12) {
-                        adjustedValue *= BASS_DAMPING_FACTOR *0.9;
-                    } else {
-                        adjustedValue *= BASS_DAMPING_FACTOR ;
-                    }
-                } else if (band < 32) {
-                    adjustedValue *= MID_GAIN_FACTOR ;
-                } else if (band < 48) {
-                    adjustedValue *= TREBLE_GAIN_FACTOR;
-                } else {
-                    adjustedValue *= SUPER_TREBLE_GAIN_FACTOR;
-                }
-                // Apply decay to bar height
+                // --- Decay & bar height ---
                 double newHeight = (adjustedValue / 60.0) * CANVAS_HEIGHT;
-                if (newHeight > barHeights[band]) {
-                    barHeights[band] = newHeight;
-                } else {
-                    barHeights[band] *= DECAY_RATE;
-                }
+                barHeights[band] = Math.max(newHeight, barHeights[band] * DECAY_RATE);
+
+                // --- Vẽ bar ---
                 double columnHeight = barHeights[band];
                 int numSegments = (int) Math.ceil(columnHeight / segmentHeight);
                 for (int j = 0; j < numSegments && j < NUM_COLORS; j++) {
-                    double segmentY = CANVAS_HEIGHT - (j + 1) * segmentHeight;
+                    double y = CANVAS_HEIGHT - (j + 1) * segmentHeight;
                     gc.setFill(barColors[j]);
-                    gc.fillRect(x, segmentY, barWidth, segmentHeight);
+                    gc.fillRect(x, y, barWidth, segmentHeight);
                 }
                 x += barWidth;
             }
         });
         mediaPlayer.play();
         btnPlay.setText("Pause");
+    }
+    // --- Vẽ mặc định khi chưa có dữ liệu ---
+    private void drawDefaultBars(GraphicsContext gc) {
+        double segmentHeight = CANVAS_HEIGHT / NUM_COLORS;
+        double x = 0;
+        for (int band = 0; band < NUM_BANDS-10; band++) {
+            double y = CANVAS_HEIGHT - segmentHeight;
+            gc.setFill(barColors[63]); // chỉ màu này
+            gc.fillRect(x, y, barWidth, segmentHeight);
+            x += barWidth;
+        }
+    }
+
+
+    private int[] getFreqIndexRange(int band, double nyquist, int spectrumSize) {
+        double minFreq = 20;
+        double bassMax = 200;
+        double midMax = 5000;
+        double maxFreq = nyquist;
+
+        int bassBands = 2;                         // This was the issue
+        int remainingBands = MusicqueController.NUM_BANDS - bassBands;
+        int midBands = 16;
+        int trebleBands = remainingBands - midBands;
+
+        double freqStart, freqEnd;
+
+        if (band < bassBands) {
+            // Bass: 20–200Hz
+            double logStart = (double) band / bassBands;
+            double logEnd   = (double) (band + 1) / bassBands;
+            freqStart = minFreq * Math.pow(bassMax / minFreq, logStart);
+            freqEnd   = minFreq * Math.pow(bassMax / minFreq, logEnd);
+
+        } else if (band < bassBands + midBands) {
+            // Mid: 200–5000Hz
+            int idx = band - bassBands;
+            double logStart = (double) idx / midBands;
+            double logEnd   = (double) (idx + 1) / midBands;
+            freqStart = bassMax * Math.pow(midMax / bassMax, logStart);
+            freqEnd   = bassMax * Math.pow(midMax / bassMax, logEnd);
+
+        } else {
+            // Treble: 5000–Nyquist
+            int idx = band - bassBands - midBands;
+            double logStart = (double) idx / trebleBands;
+            double logEnd   = (double) (idx + 1) / trebleBands;
+            freqStart = midMax * Math.pow(maxFreq / midMax, logStart);
+            freqEnd   = midMax * Math.pow(maxFreq / midMax, logEnd);
+        }
+
+        // Quy đổi sang index FFT
+        double bandWidth = nyquist / spectrumSize;
+        int startIndex = Math.min((int) (freqStart / bandWidth), spectrumSize - 1);
+        int endIndex   = Math.min((int) (freqEnd / bandWidth), spectrumSize - 1);
+        endIndex = Math.max(startIndex + 1, endIndex);
+        return new int[]{startIndex, endIndex};
+    }
+
+    private float averageMagnitude(float[] magnitudes, int start, int end) {
+        float sum = 0;
+        for (int i = start; i < end; i++) sum += magnitudes[i];
+        return (end > start) ? (sum / (end - start)) : -64.0f;
+    }
+
+    private double applyGain(int band, double value) {
+        int bassBands = 2;
+        int midBands = 16;
+
+        if (band < bassBands) { // Bass
+            return value * BASS_DAMPING_FACTOR;
+        } else if (band < bassBands + midBands) { // Mid
+            return value * MID_GAIN_FACTOR;
+        } else { // Treble
+            return value * TREBLE_GAIN_FACTOR;
+        }
     }
 
     @Subscribe
@@ -283,7 +323,7 @@ public class MusicqueController {
     public void initMenuBar(){
         MenuBar menuBar = new MenuBar();
         Menu fileMenu = new Menu("Options");
-        MenuItem openItem = new MenuItem("import music");
+        MenuItem openItem = new MenuItem("Import music");
         MenuItem reOpenList = new MenuItem("Show List");
         MenuItem exitItem = new MenuItem("Exit");
         fileMenu.getItems().addAll(reOpenList,openItem, exitItem);
