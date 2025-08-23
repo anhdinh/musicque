@@ -54,7 +54,8 @@ dependencies {
         // Dòng exclude("org.jetbrains.kotlin") đã bị xóa
     }
     implementation("org.openjfx:javafx-media:21.0.6")
-
+    implementation("org.apache.commons:commons-collections4:4.4")
+    implementation("com.google.guava:guava:33.0.0-jre")
     testImplementation("org.junit.jupiter:junit-jupiter-api:${junitVersion}")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:${junitVersion}")
 }

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.lang.*?>
+<?import java.util.*?>
+<?import javafx.scene.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="org.andy.musicque.controller.ListViewController"
+            prefHeight="400.0" prefWidth="600.0">
+    <center>
+        <TableView fx:id="tableView" prefWidth="600.0" prefHeight="400.0">
+            <columns>
+                <TableColumn fx:id="columnNo" text="No" prefWidth="50"/>
+                <TableColumn fx:id="columnName" text="Name" prefWidth="200"/>
+                <TableColumn fx:id="columnDuration" text="Duration" prefWidth="100"/>
+                <TableColumn fx:id="columnType" text="Type" prefWidth="100"/>
+                <TableColumn fx:id="columnAction" text="Status" prefWidth="150"/>
+            </columns>
+        </TableView>
+    </center>
+
+</BorderPane>

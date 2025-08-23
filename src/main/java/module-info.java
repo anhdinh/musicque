@@ -11,9 +11,14 @@ module org.andy.musicque {
     requires com.almasb.fxgl.all;
     requires javafx.media;
     requires annotations;
+    requires org.apache.commons.collections4;
+    requires com.google.common;
+    requires javafx.graphics;
 
     opens org.andy.musicque to javafx.fxml;
     exports org.andy.musicque;
     exports org.andy.musicque.controller;
+    exports org.andy.musicque.model;
+    exports org.andy.musicque.event;
     opens org.andy.musicque.controller to javafx.fxml;
 }
