@@ -26,12 +26,10 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
-public class MusicqueController {
+public class MusicqueControllerBk {
     @FXML
     public Slider progressSlider;
 
@@ -59,9 +57,14 @@ public class MusicqueController {
     private static final double CANVAS_WIDTH = 520;
     private static final double CANVAS_HEIGHT = 210;
 
-    private static final int NUM_BANDS = 128;
+    private static final int NUM_BANDS = 512;
     private double barWidth;
-    private static final int NUM_COLORS = 128;
+    private static final double BASS_DAMPING_FACTOR = 0.7;
+    private static final double MID_GAIN_FACTOR = 0.7;
+    private static final double TREBLE_GAIN_FACTOR = 1.5;
+    private static final double SUPER_TREBLE_GAIN_FACTOR = 2;
+
+    private static final int NUM_COLORS = 64;
     private final Color[] barColors = new Color[NUM_COLORS];
 
     // New array to store current bar heights for decay animation
@@ -153,76 +156,32 @@ public class MusicqueController {
         });
 
         mediaPlayer.setAudioSpectrumInterval(0.05);
-        mediaPlayer.setAudioSpectrumNumBands(1024);
+        mediaPlayer.setAudioSpectrumNumBands(NUM_BANDS);
+
+
         mediaPlayer.setAudioSpectrumListener((timestamp, duration, magnitudes, phases) -> {
             gc.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
             drawDefaultBars(gc);
-
             double segmentHeight = CANVAS_HEIGHT / NUM_COLORS;
             double x = 0;
+            double nyquist = 44100.0 / 2.0; // sampleRate/2
+            for (int band = 0; band <NUM_BANDS; band++) {
+                // --- Tính dải tần cho band ---
+                int[] range = getFreqIndexRange(band, nyquist, magnitudes.length);
+                int startIndex = range[0];
+                int endIndex   = range[1];
 
-            int newNumBands = NUM_BANDS; // Số lượng thanh bar bạn muốn hiển thị (512)
-            float[] newMagnitudes = new float[newNumBands];
-
-            // Tần số Nyquist
-            double nyquist = 44100.0 / 2.0;
-
-            // Giai đoạn 1: 0-5kHz chiếm 80% band
-            int bandsFor5kHz = (int) Math.round(newNumBands * 0.8);
-            int maxIndex5kHz = (int) (4000 / nyquist * magnitudes.length);
-
-            for (int i = 0; i < bandsFor5kHz; i++) {
-                int startIndex = (int) Math.floor((double) i / bandsFor5kHz * maxIndex5kHz);
-                int endIndex = (int) Math.floor((double) (i + 1) / bandsFor5kHz * maxIndex5kHz);
-                newMagnitudes[i] = averageMagnitude(magnitudes, startIndex, endIndex);
-            }
-
-            // Giai đoạn 2: 5-10kHz chiếm 15% band
-            int bandsFor10kHz = (int) Math.round(newNumBands * 0.15);
-            int maxIndex10kHz = (int) (10000 / nyquist * magnitudes.length);
-
-            for (int i = 0; i < bandsFor10kHz; i++) {
-                int startIndex = (int) Math.floor((double) i / bandsFor10kHz * (maxIndex10kHz - maxIndex5kHz)) + maxIndex5kHz;
-                int endIndex = (int) Math.floor((double) (i + 1) / bandsFor10kHz * (maxIndex10kHz - maxIndex5kHz)) + maxIndex5kHz;
-                newMagnitudes[bandsFor5kHz + i] = averageMagnitude(magnitudes, startIndex, endIndex);
-            }
-
-            // Giai đoạn 3: 10-15kHz chiếm 5% band
-            int bandsFor15kHz = (int) Math.round(newNumBands * 0.05);
-            int maxIndex15kHz = (int) (15000 / nyquist * magnitudes.length);
-
-            for (int i = 0; i < bandsFor15kHz; i++) {
-                int startIndex = (int) Math.floor((double) i / bandsFor15kHz * (maxIndex15kHz - maxIndex10kHz)) + maxIndex10kHz;
-                int endIndex = (int) Math.floor((double) (i + 1) / bandsFor15kHz * (maxIndex15kHz - maxIndex10kHz)) + maxIndex10kHz;
-                newMagnitudes[bandsFor5kHz + bandsFor10kHz + i] = averageMagnitude(magnitudes, startIndex, endIndex);
-            }
-
-            // Giai đoạn 4: Phần còn lại (>15kHz) chỉ chiếm 1 band cuối
-            int remainingBandIndex = bandsFor5kHz + bandsFor10kHz + bandsFor15kHz;
-            float sumRemaining = 0;
-            int countRemaining = 0;
-            for (int i = maxIndex15kHz; i < magnitudes.length; i++) {
-                sumRemaining += magnitudes[i];
-                countRemaining++;
-            }
-            if (countRemaining > 0) {
-                newMagnitudes[remainingBandIndex] = sumRemaining / countRemaining;
-            }
-
-            // Vẽ các thanh bar dựa trên mảng newMagnitudes
-            for (int band = 0; band < newNumBands; band++) {
-                float magnitude = newMagnitudes[band];
-                double adjustedValue = magnitude + 60.0;
+                // --- Trung bình magnitude ---
+                float avgMag = averageMagnitude(magnitudes, startIndex, endIndex);
+                double adjustedValue = applyGain(band, avgMag + 60.0);
 
                 // --- Decay & bar height ---
                 double newHeight = (adjustedValue / 60.0) * CANVAS_HEIGHT;
-                if(band>barHeights.length-1) return;
                 barHeights[band] = Math.max(newHeight, barHeights[band] * DECAY_RATE);
 
                 // --- Vẽ bar ---
                 double columnHeight = barHeights[band];
                 int numSegments = (int) Math.ceil(columnHeight / segmentHeight);
-
                 for (int j = 0; j < numSegments && j < NUM_COLORS; j++) {
                     double y = CANVAS_HEIGHT - (j + 1) * segmentHeight;
                     gc.setFill(barColors[j]);
@@ -246,17 +205,70 @@ public class MusicqueController {
         }
     }
 
-    private float averageMagnitude(float[] magnitudes, int startIndex, int endIndex) {
-        if (startIndex >= endIndex || startIndex < 0 || endIndex > magnitudes.length) {
-            return 0;
+
+    private int[] getFreqIndexRange(int band, double nyquist, int spectrumSize) {
+        double minFreq = 20;
+        double bassMax = 200;
+        double midMax = 5000;
+        double maxFreq = nyquist;
+
+        int bassBands = 2;                         // This was the issue
+        int remainingBands = MusicqueControllerBk.NUM_BANDS - bassBands;
+        int midBands = 16;
+        int trebleBands = remainingBands - midBands;
+
+        double freqStart, freqEnd;
+
+        if (band < bassBands) {
+            // Bass: 20–200Hz
+            double logStart = (double) band / bassBands;
+            double logEnd   = (double) (band + 1) / bassBands;
+            freqStart = minFreq * Math.pow(bassMax / minFreq, logStart);
+            freqEnd   = minFreq * Math.pow(bassMax / minFreq, logEnd);
+
+        } else if (band < bassBands + midBands) {
+            // Mid: 200–5000Hz
+            int idx = band - bassBands;
+            double logStart = (double) idx / midBands;
+            double logEnd   = (double) (idx + 1) / midBands;
+            freqStart = bassMax * Math.pow(midMax / bassMax, logStart);
+            freqEnd   = bassMax * Math.pow(midMax / bassMax, logEnd);
+
+        } else {
+            // Treble: 5000–Nyquist
+            int idx = band - bassBands - midBands;
+            double logStart = (double) idx / trebleBands;
+            double logEnd   = (double) (idx + 1) / trebleBands;
+            freqStart = midMax * Math.pow(maxFreq / midMax, logStart);
+            freqEnd   = midMax * Math.pow(maxFreq / midMax, logEnd);
         }
-        float sum = 0;
-        for (int i = startIndex; i < endIndex; i++) {
-            sum += magnitudes[i];
-        }
-        return sum / (endIndex - startIndex);
+
+        // Quy đổi sang index FFT
+        double bandWidth = nyquist / spectrumSize;
+        int startIndex = Math.min((int) (freqStart / bandWidth), spectrumSize - 1);
+        int endIndex   = Math.min((int) (freqEnd / bandWidth), spectrumSize - 1);
+        endIndex = Math.max(startIndex + 1, endIndex);
+        return new int[]{startIndex, endIndex};
     }
 
+    private float averageMagnitude(float[] magnitudes, int start, int end) {
+        float sum = 0;
+        for (int i = start; i < end; i++) sum += magnitudes[i];
+        return (end > start) ? (sum / (end - start)) : -64.0f;
+    }
+
+    private double applyGain(int band, double value) {
+        int bassBands = 2;
+        int midBands = 16;
+
+        if (band < bassBands) { // Bass
+            return value * BASS_DAMPING_FACTOR;
+        } else if (band < bassBands + midBands) { // Mid
+            return value * MID_GAIN_FACTOR;
+        } else { // Treble
+            return value * TREBLE_GAIN_FACTOR;
+        }
+    }
 
     @Subscribe
     public void onSelectedMusic(EventSelectedMusic eventSelectedMusic){
@@ -276,16 +288,7 @@ public class MusicqueController {
                 songTitleLabel.setText(title);
             } else {
                 String fileName = media.getSource();
-                try {
-                    // Giải mã chuỗi URL
-                    String decodedFileName = URLDecoder.decode(fileName, StandardCharsets.UTF_8.toString());
-
-                    // Trích xuất tên file sau khi đã giải mã
-                    songTitleLabel.setText(decodedFileName.substring(decodedFileName.lastIndexOf('/') + 1));
-                } catch (Exception e) {
-                    // Xử lý lỗi nếu có
-                    songTitleLabel.setText("Lỗi: Không thể giải mã tên file");
-                }
+                songTitleLabel.setText(fileName.substring(fileName.lastIndexOf('/') + 1));
             }
         });
         return mediaPlayer;
@@ -328,7 +331,6 @@ public class MusicqueController {
         reOpenList.setOnAction(actionEvent -> {
             if (listViewcontroller!=null){
                 listStage.show();
-                listStage.toFront();
             }else{
                 NotificationUtils.showError("List empty","list is empty");
             }
@@ -365,7 +367,6 @@ public class MusicqueController {
                         newStage.hide(); // chỉ ẩn đi
                     });
                     newStage.show();
-                    newStage.toFront();
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
