@@ -297,7 +297,7 @@ public class MusicqueController {
                 String fileName = media.getSource();
                 try {
                     // Giải mã chuỗi URL
-                    String decodedFileName = URLDecoder.decode(fileName, StandardCharsets.UTF_8.toString());
+                    String decodedFileName = URLDecoder.decode(fileName, StandardCharsets.UTF_8);
 
                     // Trích xuất tên file sau khi đã giải mã
                     songTitleLabel.setText(decodedFileName.substring(decodedFileName.lastIndexOf('/') + 1));
