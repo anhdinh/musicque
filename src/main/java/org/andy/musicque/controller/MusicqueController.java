@@ -360,6 +360,9 @@ public class MusicqueController {
             FileChooser fileChooser = new FileChooser();
             fileChooser.setTitle("Chọn file");
             List<File> files = fileChooser.showOpenMultipleDialog(mainPane.getScene().getWindow());
+            files.forEach(ite->{
+                System.out.println(ite.getAbsolutePath());;
+            });
             if (CollectionUtils.isNotEmpty(files)) {
                 try {
                     if (listViewcontroller!=null){
@@ -367,29 +370,33 @@ public class MusicqueController {
                         listStage.show();
                         return;
                     }
-                    FXMLLoader loader = new FXMLLoader(Musicque.class.getResource("list-view.fxml"));
-                    Parent root = loader.load();
-                    double width = root.prefWidth(-1);
-                    double height = root.prefHeight(-1);
-                    listViewcontroller = loader.getController();
-                    listViewcontroller.updateList(files);
-                    Stage newStage = new Stage();
-                    listStage = newStage;
-                    newStage.setTitle("List Musics");
-                    newStage.setScene( new Scene(root, width, height));
-                    newStage.setMinWidth(width);
-                    newStage.setMinHeight(height);
-                    newStage.setOnCloseRequest(xxxx -> {
-                        xxxx.consume(); // ngăn mặc định đóng stage
-                        newStage.hide(); // chỉ ẩn đi
-                    });
-                    newStage.show();
-                    newStage.toFront();
+                    initList(files);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
             }
         });
         mainPane.setTop(menuBar);
+    }
+
+    private void initList(List<File> files) throws IOException {
+        FXMLLoader loader = new FXMLLoader(Musicque.class.getResource("list-view.fxml"));
+        Parent root = loader.load();
+        double width = root.prefWidth(-1);
+        double height = root.prefHeight(-1);
+        listViewcontroller = loader.getController();
+        listViewcontroller.updateList(files);
+        Stage newStage = new Stage();
+        listStage = newStage;
+        newStage.setTitle("List Musics");
+        newStage.setScene( new Scene(root, width, height));
+        newStage.setMinWidth(width);
+        newStage.setMinHeight(height);
+        newStage.setOnCloseRequest(xxxx -> {
+            xxxx.consume(); // ngăn mặc định đóng stage
+            newStage.hide(); // chỉ ẩn đi
+        });
+        newStage.show();
+        newStage.toFront();
     }
 }
