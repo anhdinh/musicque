@@ -28,6 +28,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -59,7 +60,7 @@ public class MusicqueController {
     private static final double CANVAS_WIDTH = 520;
     private static final double CANVAS_HEIGHT = 210;
 
-    private static final int NUM_BANDS = 128;
+    private static final int NUM_BANDS = 64;
     private double barWidth;
     private static final int NUM_COLORS = 128;
     private final Color[] barColors = new Color[NUM_COLORS];
@@ -94,7 +95,7 @@ public class MusicqueController {
             }
         });
 
-        drawDefaultBars(gc);
+
     }
 
     @FXML
@@ -152,77 +153,104 @@ public class MusicqueController {
             }
         });
 
+
         mediaPlayer.setAudioSpectrumInterval(0.05);
         mediaPlayer.setAudioSpectrumNumBands(1024);
         mediaPlayer.setAudioSpectrumListener((timestamp, duration, magnitudes, phases) -> {
             gc.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-            drawDefaultBars(gc);
 
             double segmentHeight = CANVAS_HEIGHT / NUM_COLORS;
             double x = 0;
 
-            int newNumBands = NUM_BANDS; // Số lượng thanh bar bạn muốn hiển thị (512)
+            int newNumBands = NUM_BANDS;
             float[] newMagnitudes = new float[newNumBands];
 
-            // Tần số Nyquist
             double nyquist = 44100.0 / 2.0;
 
-            // Giai đoạn 1: 0-5kHz chiếm 80% band
+            // --- Band allocation: 0-5kHz 80%, 5-10kHz 15%, 10-15kHz 5%, >15kHz remaining ---
             int bandsFor5kHz = (int) Math.round(newNumBands * 0.8);
-            int maxIndex5kHz = (int) (4000 / nyquist * magnitudes.length);
-
-            for (int i = 0; i < bandsFor5kHz; i++) {
-                int startIndex = (int) Math.floor((double) i / bandsFor5kHz * maxIndex5kHz);
-                int endIndex = (int) Math.floor((double) (i + 1) / bandsFor5kHz * maxIndex5kHz);
-                newMagnitudes[i] = averageMagnitude(magnitudes, startIndex, endIndex);
-            }
-
-            // Giai đoạn 2: 5-10kHz chiếm 15% band
             int bandsFor10kHz = (int) Math.round(newNumBands * 0.15);
-            int maxIndex10kHz = (int) (10000 / nyquist * magnitudes.length);
-
-            for (int i = 0; i < bandsFor10kHz; i++) {
-                int startIndex = (int) Math.floor((double) i / bandsFor10kHz * (maxIndex10kHz - maxIndex5kHz)) + maxIndex5kHz;
-                int endIndex = (int) Math.floor((double) (i + 1) / bandsFor10kHz * (maxIndex10kHz - maxIndex5kHz)) + maxIndex5kHz;
-                newMagnitudes[bandsFor5kHz + i] = averageMagnitude(magnitudes, startIndex, endIndex);
-            }
-
-            // Giai đoạn 3: 10-15kHz chiếm 5% band
             int bandsFor15kHz = (int) Math.round(newNumBands * 0.05);
+            int remainingBand = newNumBands - (bandsFor5kHz + bandsFor10kHz + bandsFor15kHz);
+            if (remainingBand < 1) remainingBand = 1;
+
+            int maxIndex5kHz = (int) (5000 / nyquist * magnitudes.length);
+            int maxIndex10kHz = (int) (10000 / nyquist * magnitudes.length);
             int maxIndex15kHz = (int) (15000 / nyquist * magnitudes.length);
 
-            for (int i = 0; i < bandsFor15kHz; i++) {
-                int startIndex = (int) Math.floor((double) i / bandsFor15kHz * (maxIndex15kHz - maxIndex10kHz)) + maxIndex10kHz;
-                int endIndex = (int) Math.floor((double) (i + 1) / bandsFor15kHz * (maxIndex15kHz - maxIndex10kHz)) + maxIndex10kHz;
-                newMagnitudes[bandsFor5kHz + bandsFor10kHz + i] = averageMagnitude(magnitudes, startIndex, endIndex);
+            int bandIndex = 0;
+
+            // --- 0-5kHz ---
+            for (int i = 0; i < bandsFor5kHz; i++, bandIndex++) {
+                int startIndex = (int) Math.floor((double) i / bandsFor5kHz * maxIndex5kHz);
+                int endIndex = (int) Math.floor((double) (i + 1) / bandsFor5kHz * maxIndex5kHz);
+                newMagnitudes[bandIndex] = averageMagnitudeSafe(magnitudes, startIndex, endIndex);
             }
 
-            // Giai đoạn 4: Phần còn lại (>15kHz) chỉ chiếm 1 band cuối
-            int remainingBandIndex = bandsFor5kHz + bandsFor10kHz + bandsFor15kHz;
+            // --- 5-10kHz ---
+            for (int i = 0; i < bandsFor10kHz; i++, bandIndex++) {
+                int startIndex = (int) Math.floor((double) i / bandsFor10kHz * (maxIndex10kHz - maxIndex5kHz)) + maxIndex5kHz;
+                int endIndex = (int) Math.floor((double) (i + 1) / bandsFor10kHz * (maxIndex10kHz - maxIndex5kHz)) + maxIndex5kHz;
+                newMagnitudes[bandIndex] = averageMagnitudeSafe(magnitudes, startIndex, endIndex);
+            }
+
+            // --- 10-15kHz ---
+            for (int i = 0; i < bandsFor15kHz; i++, bandIndex++) {
+                int startIndex = (int) Math.floor((double) i / bandsFor15kHz * (maxIndex15kHz - maxIndex10kHz)) + maxIndex10kHz;
+                int endIndex = (int) Math.floor((double) (i + 1) / bandsFor15kHz * (maxIndex15kHz - maxIndex10kHz)) + maxIndex10kHz;
+                newMagnitudes[bandIndex] = averageMagnitudeSafe(magnitudes, startIndex, endIndex);
+            }
+
+            // --- >15kHz ---
             float sumRemaining = 0;
             int countRemaining = 0;
             for (int i = maxIndex15kHz; i < magnitudes.length; i++) {
                 sumRemaining += magnitudes[i];
                 countRemaining++;
             }
-            if (countRemaining > 0) {
-                newMagnitudes[remainingBandIndex] = sumRemaining / countRemaining;
+            for (int i = 0; i < remainingBand && bandIndex < newNumBands; i++, bandIndex++) {
+                newMagnitudes[bandIndex] = countRemaining > 0 ? sumRemaining / countRemaining : 0;
             }
 
-            // Vẽ các thanh bar dựa trên mảng newMagnitudes
+            // --- Vẽ bar ---
             for (int band = 0; band < newNumBands; band++) {
-                float magnitude = newMagnitudes[band];
-                double adjustedValue = magnitude + 60.0;
+                if (band >= barHeights.length) continue;
 
-                // --- Decay & bar height ---
-                double newHeight = (adjustedValue / 60.0) * CANVAS_HEIGHT;
-                if(band>barHeights.length-1) return;
+                float magnitude = newMagnitudes[band];
+                double normalizedMagnitude = magnitude + 60.0;
+                if (normalizedMagnitude < 0) normalizedMagnitude = 0;
+
+                // --- Nén logarithm để giảm bass quá cao ---
+                double logMagnitude = Math.log10(normalizedMagnitude + 1) * 30; // 20 = hệ số tùy chỉnh
+
+                // --- Weight bass/mid ---
+                double bandFreq;
+                if (band < bandsFor5kHz)
+                    bandFreq = 5000.0 * band / bandsFor5kHz;
+                else if (band < bandsFor5kHz + bandsFor10kHz)
+                    bandFreq = 5000.0 + 5000.0 * (band - bandsFor5kHz) / bandsFor10kHz;
+                else if (band < bandsFor5kHz + bandsFor10kHz + bandsFor15kHz)
+                    bandFreq = 10000.0 + 5000.0 * (band - bandsFor5kHz - bandsFor10kHz) / bandsFor15kHz;
+                else
+                    bandFreq = 15000.0;
+
+                double weight = 1.0;
+                if (bandFreq < 200) weight = 1.1;   // giảm mạnh bass
+                else if (bandFreq < 500) weight = 1.2;
+                else if (bandFreq < 1000) weight = 1.2;
+                else if (bandFreq < 2000) weight = 1.5;
+                else if (bandFreq < 4000) weight = 2.0;
+                else weight = 2.2;
+
+                logMagnitude *= weight;
+
+                // --- Decay ---
+                double newHeight = logMagnitude;
                 barHeights[band] = Math.max(newHeight, barHeights[band] * DECAY_RATE);
 
-                // --- Vẽ bar ---
+                // --- Vẽ segment ---
                 double columnHeight = barHeights[band];
                 int numSegments = (int) Math.ceil(columnHeight / segmentHeight);
-
                 for (int j = 0; j < numSegments && j < NUM_COLORS; j++) {
                     double y = CANVAS_HEIGHT - (j + 1) * segmentHeight;
                     gc.setFill(barColors[j]);
@@ -234,28 +262,19 @@ public class MusicqueController {
         mediaPlayer.play();
         btnPlay.setText("Pause");
     }
-    // --- Vẽ mặc định khi chưa có dữ liệu ---
-    private void drawDefaultBars(GraphicsContext gc) {
-        double segmentHeight = CANVAS_HEIGHT / NUM_COLORS;
-        double x = 0;
-        for (int band = 0; band < NUM_BANDS-10; band++) {
-            double y = CANVAS_HEIGHT - segmentHeight;
-            gc.setFill(barColors[63]); // chỉ màu này
-            gc.fillRect(x, y, barWidth, segmentHeight);
-            x += barWidth;
-        }
-    }
+    private float averageMagnitudeSafe(float[] magnitudes, int startIndex, int endIndex) {
+        if (startIndex < 0) startIndex = 0;
+        if (endIndex > magnitudes.length) endIndex = magnitudes.length;
+        if (startIndex >= endIndex) return 0;
 
-    private float averageMagnitude(float[] magnitudes, int startIndex, int endIndex) {
-        if (startIndex >= endIndex || startIndex < 0 || endIndex > magnitudes.length) {
-            return 0;
-        }
         float sum = 0;
         for (int i = startIndex; i < endIndex; i++) {
             sum += magnitudes[i];
         }
         return sum / (endIndex - startIndex);
     }
+
+    // ==== drawDefaultBars đồng bộ với main draw ====
 
 
     @Subscribe
@@ -320,8 +339,8 @@ public class MusicqueController {
     public void initMenuBar(){
         MenuBar menuBar = new MenuBar();
         Menu fileMenu = new Menu("Options");
-        MenuItem openItem = new MenuItem("Import music");
-        MenuItem reOpenList = new MenuItem("Show List");
+        MenuItem openItem = new MenuItem("Import");
+        MenuItem reOpenList = new MenuItem("List");
         MenuItem exitItem = new MenuItem("Exit");
         fileMenu.getItems().addAll(reOpenList,openItem, exitItem);
         menuBar.getMenus().addAll(fileMenu);
