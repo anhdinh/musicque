@@ -2,7 +2,6 @@ package org.andy.musicque.utils;
 
 
 import com.google.common.eventbus.EventBus;
-import com.google.common.eventbus.Subscribe;
 
 public class EventBusUtils {
 
