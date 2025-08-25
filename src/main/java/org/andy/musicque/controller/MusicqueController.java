@@ -388,7 +388,7 @@ public class MusicqueController {
         listViewcontroller.updateList(files);
         Stage newStage = new Stage();
         listStage = newStage;
-        newStage.setTitle("List Musics");
+        newStage.setTitle("List");
         newStage.setScene( new Scene(root, width, height));
         newStage.setMinWidth(width);
         newStage.setMinHeight(height);
