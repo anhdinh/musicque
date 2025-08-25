@@ -1,0 +1,32 @@
+.root-pane {
+    -fx-background-color: linear-gradient(to bottom, #1e1e1e, #121212);
+}
+
+.song-title {
+    -fx-text-fill: white;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+}
+
+.control-box {
+    -fx-background-color: rgba(255, 255, 255, 0.08);
+    -fx-background-radius: 30;
+    -fx-padding: 10;
+}
+
+.control-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill: white;
+    -fx-font-size: 20px;
+    -fx-cursor: hand;
+}
+
+.control-btn:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.2);
+    -fx-background-radius: 50%;
+}
+
+.time-label {
+    -fx-text-fill: #ccc;
+    -fx-font-size: 12px;
+}

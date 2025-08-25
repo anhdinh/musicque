@@ -7,6 +7,7 @@ import javafx.scene.Scene;
 import javafx.stage.Stage;
 
 import java.io.IOException;
+import java.util.Objects;
 
 public class Musicque extends Application {
     @Override
@@ -15,6 +16,9 @@ public class Musicque extends Application {
         Scene scene = new Scene(fxmlLoader.load(), 700, 500);
         stage.setTitle("Music Player");
         stage.setScene(scene);
+        scene.getStylesheets().add(
+                Objects.requireNonNull(getClass().getResource("/style.css")).toExternalForm()
+        );
         stage.show();
         stage.setOnCloseRequest(event -> {
             Platform.exit();

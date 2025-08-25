@@ -10,7 +10,9 @@ import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.*;
+import javafx.scene.effect.GaussianBlur;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.VBox;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import javafx.scene.paint.Color;
@@ -53,6 +55,8 @@ public class MusicqueController {
     public Slider volumeSlider;
 
     public BorderPane mainPane;
+    public Button btnPrev;
+    public Button btnNext;
 
     private boolean isReplayOne = false;
 
@@ -71,7 +75,11 @@ public class MusicqueController {
     ListViewController listViewcontroller;
     Stage listStage;
     String currentFilePath;
+
+
     public void initialize() {
+//        GaussianBlur blur = new GaussianBlur(20);
+//        mainPane.setEffect(blur);
         EventBusUtils.register(this);
         gc = spectrumCanvas.getGraphicsContext2D();
         spectrumCanvas.setWidth(CANVAS_WIDTH);
@@ -260,7 +268,7 @@ public class MusicqueController {
             }
         });
         mediaPlayer.play();
-        btnPlay.setText("Pause");
+        btnPlay.setText("⏸");
     }
     private float averageMagnitudeSafe(float[] magnitudes, int startIndex, int endIndex) {
         if (startIndex < 0) startIndex = 0;
