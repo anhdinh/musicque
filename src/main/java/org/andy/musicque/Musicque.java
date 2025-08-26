@@ -25,12 +25,14 @@ public class Musicque extends Application {
         try {
             FXMLLoader fxmlLoader = new FXMLLoader(Musicque.class.getResource("main-view.fxml"));
             Scene scene = new Scene(fxmlLoader.load(), 850, 500);
-            stage.setTitle("Music Player");
+            stage.setTitle("Andy Music Player 0.0.1");
             stage.setScene(scene);
             scene.getStylesheets().add(
                     Objects.requireNonNull(getClass().getResource("/style.css")).toExternalForm()
             );
+
             ImageHelper.showIcon(stage);
+            stage.setResizable(false);
             stage.show();
 
             addAppToTray(stage);

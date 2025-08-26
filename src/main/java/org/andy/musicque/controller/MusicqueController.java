@@ -66,8 +66,15 @@ public class MusicqueController {
     public BorderPane mainPane;
     public Button btnPrev;
     public Button btnNext;
+    public Button btnFavorite;
+    public Button btnVolume;
+    //🔈 🔊 🔇 🔉
+    public String volumeLevelText = "🔊";
 
-    private boolean isReplayOne = false;
+    private boolean isFavorite = false;
+    private boolean isMute = false;
+
+    private RepeatMode currentMode = RepeatMode.ALL;
 
     private GraphicsContext gc;
     private static final double CANVAS_WIDTH = 520;
@@ -109,10 +116,12 @@ public class MusicqueController {
 
         if (mediaPlayer != null) {
             mediaPlayer.setVolume(volumeSlider.getValue());
+            btnVolume.setText(getVolumeLevelText(volumeSlider.getValue()));
         }
 
         volumeSlider.valueProperty().addListener((observable, oldValue, newValue) -> {
             if (mediaPlayer != null) {
+                btnVolume.setText(getVolumeLevelText(newValue.doubleValue()));
                 mediaPlayer.setVolume(newValue.doubleValue());
             }
         });
@@ -122,11 +131,11 @@ public class MusicqueController {
 
     @FXML
     protected void onPlayButtonClick() {
-//        if (isPlaying(mediaPlayer)) {
-//            btnPlay.setText("Play");
-//            mediaPlayer.pause();
-//            return;
-//        }
+        if (isPlaying(mediaPlayer)) {
+            btnPlay.setText("▶");
+            mediaPlayer.pause();
+            return;
+        }
 //        if (mediaPlayer != null) {
 //            if (mediaPlayer.getStatus() == MediaPlayer.Status.STOPPED) {
 //                mediaPlayer.seek(Duration.ZERO);
@@ -167,12 +176,12 @@ public class MusicqueController {
 
         mediaPlayer.setOnEndOfMedia(() -> {
             mediaPlayer.seek(Duration.ZERO);
-            if (isReplayOne) {
-                mediaPlayer.play();
-            } else {
-                mediaPlayer.stop();
-                btnPlay.setText("▶");
-            }
+//            if (isReplayOne) {
+//                mediaPlayer.play();
+//            } else {
+//                mediaPlayer.stop();
+//                btnPlay.setText("▶");
+//            }
         });
 
 
@@ -350,11 +359,26 @@ public class MusicqueController {
     }
 
     public void onReplayOneClick(ActionEvent actionEvent) {
-        this.isReplayOne = !this.isReplayOne;
-        if (isReplayOne) {
-            btnRepayOne.setText("Replay on");
-        } else {
-            btnRepayOne.setText("Replay off");
+//        this.isReplayOne = !this.isReplayOne;
+//        if (isReplayOne) {
+//            btnRepayOne.setText("Replay on");
+//        } else {
+//            btnRepayOne.setText("Replay off");
+//        }
+
+        switch (currentMode) {
+            case ALL:
+                currentMode = RepeatMode.ONE;
+                btnRepayOne.setText("🔂"); // Repeat One
+                break;
+            case ONE:
+                currentMode = RepeatMode.SHUFFLE;
+                btnRepayOne.setText("🔀"); // Shuffle
+                break;
+            case SHUFFLE:
+                currentMode = RepeatMode.ALL;
+                btnRepayOne.setText("🔁"); // Repeat All
+                break;
         }
     }
 
@@ -422,4 +446,52 @@ public class MusicqueController {
         newStage.show();
         newStage.toFront();
     }
+
+    public void onFavoriteClick(ActionEvent actionEvent) {
+        isFavorite = !isFavorite;
+        if (isFavorite) {
+            btnFavorite.setText("♡"); // Loại bỏ yêu thích
+        } else {
+            btnFavorite.setText("❤"); // Thêm yêu thích
+        }
+        // Thực hiện logic thêm/bỏ yêu thích ở đây, ví dụ:
+        // updateFavoriteStatus(isFavorite);
+    }
+
+    public void onVolumeClick(ActionEvent actionEvent) {
+        if(mediaPlayer==null){
+            NotificationUtils.showInfo("No Music","No song playing");
+            return;
+        }
+        isMute = !isMute;
+        if(isMute){
+            btnVolume.setText("🔇");
+            mediaPlayer.setVolume(0.0);
+            volumeSlider.setValue(0.0);
+        }else{
+            volumeSlider.setValue(0.75);
+            btnVolume.setText("🔊");
+            mediaPlayer.setVolume(0.75);
+
+        }
+    }
+
+    //🔈 🔊 🔇 🔉
+    public String getVolumeLevelText(double volume) {
+        //volumeSlider.getValue()
+        if (volume == 0.0){
+            isMute = true;
+            return "🔇";
+        }else if(volume<0.2){
+            isMute = false;
+            return "🔈";
+        }else if(volume<0.5){
+            isMute =false;
+            return "🔉";
+        }else{
+            isMute = false;
+            return "🔊";
+        }
+    }
 }
+

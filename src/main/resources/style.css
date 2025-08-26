@@ -1,3 +1,8 @@
+@font-face {
+    font-family: "MyCustomFont";
+    src: url("font/NotoColorEmoji-Regular.ttf");
+}
+
 .root-pane {
     /*-fx-background-color: linear-gradient(to bottom, #1e1e1e, #121212);*/
     -fx-end-margin: 10px;
@@ -17,10 +22,17 @@
 }
 
 .control-btn {
+    -fx-font-family: sans-serif, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "MyCustomFont";
+    -fx-font-size: 20px;
+    -fx-padding: 8px;
+    -fx-alignment: CENTER;
+    -fx-cursor: hand;
     -fx-background-color: transparent;
     -fx-text-fill: white;
-    -fx-font-size: 20px;
-    -fx-cursor: hand;
+    -fx-min-width: 40px;
+    -fx-min-height: 40px;
+    -fx-pref-width: 40px;
+    -fx-pref-height: 40px;
 }
 
 .control-btn:hover {
