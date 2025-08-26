@@ -1,5 +1,7 @@
 .root-pane {
     -fx-background-color: linear-gradient(to bottom, #1e1e1e, #121212);
+    -fx-end-margin: 10px;
+    -fx-padding: 0px 0 20px 0;
 }
 
 .song-title {
