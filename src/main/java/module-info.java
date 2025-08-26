@@ -14,6 +14,7 @@ module org.andy.musicque {
     requires org.apache.commons.collections4;
     requires com.google.common;
     requires javafx.graphics;
+    requires java.desktop;
 
     opens org.andy.musicque to javafx.fxml;
     exports org.andy.musicque;

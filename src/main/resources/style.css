@@ -1,7 +1,7 @@
 .root-pane {
-    -fx-background-color: linear-gradient(to bottom, #1e1e1e, #121212);
+    /*-fx-background-color: linear-gradient(to bottom, #1e1e1e, #121212);*/
     -fx-end-margin: 10px;
-    -fx-padding: 0px 0 20px 0;
+    -fx-padding: 0px 0px 20px 0;
 }
 
 .song-title {
@@ -12,7 +12,7 @@
 
 .control-box {
     -fx-background-color: rgba(255, 255, 255, 0.08);
-    -fx-background-radius: 30;
+    -fx-background-radius: 0;
     -fx-padding: 10;
 }
 
@@ -26,6 +26,22 @@
 .control-btn:hover {
     -fx-background-color: rgba(255, 255, 255, 0.2);
     -fx-background-radius: 50%;
+}
+
+.progress-slider{
+
+
+}
+
+.progress-slider .track{
+    -fx-background-color: rgba(255, 255, 255, 0.7); /* trắng, 70% opacity */
+    -fx-pref-height: 1px;  /* mỏng */
+}
+
+.slider .thumb {
+    -fx-background-color: white;   /* trắng solid */
+    -fx-pref-width: 8px;          /* nhỏ hơn mặc định */
+    -fx-pref-height: 8px;
 }
 
 .time-label {

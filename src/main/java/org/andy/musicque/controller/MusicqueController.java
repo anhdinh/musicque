@@ -10,10 +10,15 @@ import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.Menu;
+import javafx.scene.control.MenuBar;
+import javafx.scene.control.MenuItem;
 import javafx.scene.effect.GaussianBlur;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.VBox;
 import javafx.scene.media.Media;
+import javafx.scene.shape.Rectangle;
 import javafx.scene.media.MediaPlayer;
 import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
@@ -26,6 +31,7 @@ import org.andy.musicque.utils.NotificationUtils;
 import org.apache.commons.collections4.CollectionUtils;
 import org.jetbrains.annotations.NotNull;
 
+import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 import java.net.URLDecoder;
@@ -78,8 +84,13 @@ public class MusicqueController {
 
 
     public void initialize() {
-//        GaussianBlur blur = new GaussianBlur(20);
-//        mainPane.setEffect(blur);
+        Rectangle background = new Rectangle(mainPane.getWidth(), mainPane.getHeight());
+        background.setFill(Color.color(0, 0, 0, 0.9));
+        GaussianBlur blur = new GaussianBlur(20);
+        background.setEffect(blur);
+        background.widthProperty().bind(mainPane.widthProperty());
+        background.heightProperty().bind(mainPane.heightProperty());
+        mainPane.getChildren().addFirst(background);
         EventBusUtils.register(this);
         gc = spectrumCanvas.getGraphicsContext2D();
         spectrumCanvas.setWidth(CANVAS_WIDTH);
@@ -157,7 +168,7 @@ public class MusicqueController {
                 mediaPlayer.play();
             } else {
                 mediaPlayer.stop();
-                btnPlay.setText("Play");
+                btnPlay.setText("▶");
             }
         });
 
