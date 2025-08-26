@@ -13,7 +13,6 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.layout.HBox;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
-import javafx.util.Callback;
 import javafx.util.Duration;
 import org.andy.musicque.event.EventSelectedMusic;
 import org.andy.musicque.model.FileItem;
@@ -24,7 +23,6 @@ import org.andy.musicque.utils.ImageHelper;
 import java.io.File;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Queue;
 
 public class ListViewController {
@@ -41,7 +39,7 @@ public class ListViewController {
     private int playingIndex = -1;
 
     private MediaPlayer mediaPlayer;
-    Image image = ImageHelper.loadImage("/images/pause-icon.png");;
+    Image image = ImageHelper.loadImage("/images/pause-icon.png");
 
     @FXML
     public void initialize() {
@@ -53,9 +51,7 @@ public class ListViewController {
         columnNo.setCellValueFactory(cellData ->
                 new ReadOnlyObjectWrapper<>(tableView.getItems().indexOf(cellData.getValue()) + 1)
         );
-        tableView.getItems().addListener((ListChangeListener<FileItem>) change -> {
-            tableView.refresh();
-        });
+        tableView.getItems().addListener((ListChangeListener<FileItem>) _ -> tableView.refresh());
         setupActionColumn();
         tableView.setOnMouseClicked(event -> {
             if (event.getButton().equals(MouseButton.PRIMARY) && event.getClickCount() == 2) {
