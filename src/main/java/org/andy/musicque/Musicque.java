@@ -6,6 +6,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.stage.Stage;
+import org.andy.musicque.utils.ImageHelper;
 
 import javax.imageio.ImageIO;
 import java.io.IOException;
@@ -29,15 +30,12 @@ public class Musicque extends Application {
             scene.getStylesheets().add(
                     Objects.requireNonNull(getClass().getResource("/style.css")).toExternalForm()
             );
-            stage.getIcons().add(
-                    new Image(Objects.requireNonNull(getClass().getResourceAsStream("/images/icon-app.png")))
-            );
+            ImageHelper.showIcon(stage);
             stage.show();
 
             addAppToTray(stage);
 
             stage.setOnCloseRequest(event -> {
-                System.out.println("hided");
                 event.consume();
                 stage.hide();
             });

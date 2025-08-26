@@ -3,8 +3,8 @@ plugins {
     application
     id("org.javamodularity.moduleplugin") version "1.8.15"
     id("org.openjfx.javafxplugin") version "0.0.13"
-    id("org.beryx.jlink") version "2.25.0"
-    id("org.jetbrains.kotlin.jvm") version "1.9.23" // Thêm plugin Kotlin
+    id("org.jetbrains.kotlin.jvm") version "1.9.23"
+    id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
 group = "org.andy"
@@ -28,7 +28,7 @@ tasks.withType<JavaCompile> {
 
 application {
     mainModule.set("org.andy.musicque")
-    mainClass.set("org.andy.musicque.HelloApplication")
+    mainClass.set("org.andy.musicque.Launcher")
 }
 
 javafx {
@@ -58,16 +58,13 @@ dependencies {
     implementation("com.google.guava:guava:33.0.0-jre")
     testImplementation("org.junit.jupiter:junit-jupiter-api:${junitVersion}")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:${junitVersion}")
+    implementation("org.openjfx:javafx-controls:21.0.6")
+    implementation("org.openjfx:javafx-fxml:21.0.6")
+    implementation("org.openjfx:javafx-web:21.0.6")
+    implementation("org.openjfx:javafx-media:21.0.6")
+    implementation("org.openjfx:javafx-swing:21.0.6")
 }
 
 tasks.withType<Test> {
     useJUnitPlatform()
-}
-
-jlink {
-    imageZip.set(layout.buildDirectory.file("/distributions/app-${javafx.platform.classifier}.zip"))
-    options.set(listOf("--strip-debug", "--compress", "2", "--no-header-files", "--no-man-pages"))
-    launcher {
-        name = "app"
-    }
 }

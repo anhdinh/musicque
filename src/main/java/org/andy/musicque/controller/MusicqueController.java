@@ -16,6 +16,7 @@ import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
 import javafx.scene.effect.GaussianBlur;
+import javafx.scene.image.Image;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.media.Media;
 import javafx.scene.shape.Rectangle;
@@ -27,6 +28,7 @@ import javafx.util.Duration;
 import org.andy.musicque.Musicque;
 import org.andy.musicque.event.EventSelectedMusic;
 import org.andy.musicque.utils.EventBusUtils;
+import org.andy.musicque.utils.ImageHelper;
 import org.andy.musicque.utils.NotificationUtils;
 import org.apache.commons.collections4.CollectionUtils;
 import org.jetbrains.annotations.NotNull;
@@ -39,6 +41,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class MusicqueController {
     @FXML
@@ -411,6 +414,7 @@ public class MusicqueController {
         newStage.setScene( new Scene(root, width, height));
         newStage.setMinWidth(width);
         newStage.setMinHeight(height);
+        ImageHelper.showIcon(newStage);
         newStage.setOnCloseRequest(xxxx -> {
             xxxx.consume(); // ngăn mặc định đóng stage
             newStage.hide(); // chỉ ẩn đi
